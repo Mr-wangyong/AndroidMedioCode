@@ -6,6 +6,7 @@ import android.hardware.Camera
 import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.os.Environment
+import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.TextureView
@@ -23,18 +24,19 @@ class CameraRecorder : IRecorder {
     private val mVideoFileName = "mCameraVideo.mp4"
     private lateinit var holder: SurfaceHolder
 
-    private val pictureFileName by lazy {
+    private val pictureFileName by lazy(LazyThreadSafetyMode.NONE) {
         Environment.getExternalStorageDirectory().absolutePath + File.separator + mPictureFileName
     }
 
-    val videoFileName by lazy {
+    val videoFileName by lazy(LazyThreadSafetyMode.NONE) {
         Environment.getExternalStorageDirectory().absolutePath + File.separator + mVideoFileName
     }
 
     private lateinit var mContext: Context
-    private val camera by lazy {
-        Camera.open()
-    }
+    private val camera by lazy({
+        val num = Camera.getNumberOfCameras()
+        Camera.open(num - 1)
+    })
 
     fun init(context: Context): Boolean {
         this.mContext = context
@@ -48,7 +50,9 @@ class CameraRecorder : IRecorder {
         holder.addCallback(object : SurfaceHolder.Callback {
 
             override fun surfaceCreated(holder: SurfaceHolder?) {
+                camera.setDisplayOrientation(90)
                 startCameraPreview(holder)
+                startFaceDetection() // 人脸识别
             }
 
             override fun surfaceChanged(holder: SurfaceHolder?, format: Int, width: Int, height: Int) {
@@ -65,6 +69,27 @@ class CameraRecorder : IRecorder {
 
 
         })
+    }
+
+    private fun startFaceDetection() {
+        val params = camera.parameters
+//        params.focusMode = Camera.Parameters.FOCUS_MODE_AUTO
+//        camera.parameters = params
+
+
+        if (params.maxNumDetectedFaces > 0) {
+            camera.startFaceDetection()
+            camera.setFaceDetectionListener { faces, camera ->
+                if (faces.isNotEmpty()) {
+                    Log.d("人脸区域", "face detected: " + faces.size +
+                            " Face 1 Location X: " + faces[0].rect.centerX() +
+                            "Y: " + faces[0].rect.centerY())
+                }
+            }
+        } else {
+            Log.e("tag", "【FaceDetectorActivity】类的方法：【startFaceDetection】: " + "不支持")
+        }
+
     }
 
     override fun startPreview(surfaceView: SurfaceView) {
@@ -91,10 +116,6 @@ class CameraRecorder : IRecorder {
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA)
         mediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))
         mediaRecorder.setOutputFile(videoFileName)
-
-//        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-//        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT)
-//        mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT)
 
         mediaRecorder.setPreviewDisplay(holder.surface)
         mediaRecorder.prepare()
@@ -137,5 +158,13 @@ class CameraRecorder : IRecorder {
 
     private fun checkHardware(context: Context): Boolean {
         return context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA)
+    }
+
+    fun onPause() {
+
+    }
+
+    fun onResume() {
+
     }
 }

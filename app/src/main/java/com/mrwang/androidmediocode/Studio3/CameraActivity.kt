@@ -71,7 +71,19 @@ class CameraActivity : AppCompatActivity() {
                 }
             }
         }
-
     }
+
+    // 没处理 onPause 的情况，理论上应该要处理的 因为是 Demo 暂时不做处理
+    override fun onPause() {
+        super.onPause()
+        cameraRecorder.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        cameraRecorder.onResume()
+    }
+
+
 
 }
