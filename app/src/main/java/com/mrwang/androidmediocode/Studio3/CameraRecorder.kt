@@ -2,6 +2,7 @@ package com.mrwang.androidmediocode.Studio3
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.*
 import android.hardware.Camera
 import android.media.CamcorderProfile
 import android.media.MediaRecorder
@@ -12,8 +13,10 @@ import android.view.SurfaceView
 import android.view.TextureView
 import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.async
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+
 
 /**
  * @author chengwangyong
@@ -22,6 +25,7 @@ import java.io.FileOutputStream
 class CameraRecorder : IRecorder {
     private val mPictureFileName = "mCameraRecode.jpg"
     private val mVideoFileName = "mCameraVideo.mp4"
+    private val mPreviewFileName = "mCameraPreview.jpg"
     private lateinit var holder: SurfaceHolder
 
     private val pictureFileName by lazy(LazyThreadSafetyMode.NONE) {
@@ -30,6 +34,10 @@ class CameraRecorder : IRecorder {
 
     val videoFileName by lazy(LazyThreadSafetyMode.NONE) {
         Environment.getExternalStorageDirectory().absolutePath + File.separator + mVideoFileName
+    }
+
+    val mPreviewFile by lazy(LazyThreadSafetyMode.NONE) {
+        Environment.getExternalStorageDirectory().absolutePath + File.separator + mPreviewFileName
     }
 
     private lateinit var mContext: Context
@@ -60,6 +68,7 @@ class CameraRecorder : IRecorder {
                     if (holder.surface == null) return
                     camera.stopPreview()
                     startCameraPreview(holder)
+                    startFaceDetection()
                 }
             }
 
@@ -73,10 +82,7 @@ class CameraRecorder : IRecorder {
 
     private fun startFaceDetection() {
         val params = camera.parameters
-//        params.focusMode = Camera.Parameters.FOCUS_MODE_AUTO
-//        camera.parameters = params
-
-
+        camera.cancelAutoFocus()
         if (params.maxNumDetectedFaces > 0) {
             camera.startFaceDetection()
             camera.setFaceDetectionListener { faces, camera ->
@@ -126,6 +132,38 @@ class CameraRecorder : IRecorder {
     private fun startCameraPreview(holder: SurfaceHolder?) {
         camera.setPreviewDisplay(holder)
         camera.startPreview()
+        camera.setOneShotPreviewCallback { data, camera ->
+            async(CommonPool) {
+                camera.setOneShotPreviewCallback(null)
+                val previewSize = camera.parameters.previewSize
+                val yuvImage = YuvImage(data, ImageFormat.NV21, previewSize.width, previewSize.height, null)
+                val bos = ByteArrayOutputStream()
+                // 将 YUVImage 转化成 JPEG
+                yuvImage.compressToJpeg(Rect(0, 0, previewSize.width, previewSize.height), 80, bos)
+                val rawByte = bos.toByteArray()
+
+                val options = BitmapFactory.Options()
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888
+                val bitmap = BitmapFactory.decodeByteArray(rawByte, 0, rawByte.size, options)
+                bitmapToFile(bitmap)
+            }
+        }
+    }
+
+    private fun bitmapToFile(bitmap: Bitmap) {
+        val f = File(mPreviewFile)
+        if (!f.exists()) {
+            f.createNewFile()
+        }
+        val bos = ByteArrayOutputStream()
+        // 如果这里改为 JPEG 就会很多地方绿色的 图片色彩不对 因为格式错了
+        bitmap.compress(Bitmap.CompressFormat.PNG, 0 /*ignored for PNG*/, bos)
+        val bitmapData = bos.toByteArray()
+
+        val fos = FileOutputStream(f)
+        fos.write(bitmapData)
+        fos.flush()
+        fos.close()
     }
 
 
