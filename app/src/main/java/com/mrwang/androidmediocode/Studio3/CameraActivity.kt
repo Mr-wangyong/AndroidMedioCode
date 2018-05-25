@@ -33,7 +33,6 @@ class CameraActivity : AppCompatActivity() {
             }
             cameraRecorder.initCamera(surface)
             verticalLayout {
-
                 button(" 开启预览") {
                     setOnClickListener {
                         cameraRecorder.startPreview(surface)
