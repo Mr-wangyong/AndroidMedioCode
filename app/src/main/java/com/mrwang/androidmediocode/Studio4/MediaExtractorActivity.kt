@@ -25,6 +25,15 @@ class MediaExtractorActivity : AppCompatActivity() {
                     }
                 }
             }.lparams(wrapContent, wrapContent)
+            button("合成文件") {
+                setOnClickListener {
+                    MediaExtractorUtils().mixtureMp4{
+                        runOnUiThread {
+                            text = "合成成功"
+                        }
+                    }
+                }
+            }.lparams(wrapContent, wrapContent)
             gravity = Gravity.CENTER
         }
     }
