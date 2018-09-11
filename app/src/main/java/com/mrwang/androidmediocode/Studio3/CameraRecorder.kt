@@ -12,7 +12,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.TextureView
 import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -41,10 +41,10 @@ class CameraRecorder : IRecorder {
     }
 
     private lateinit var mContext: Context
-    private val camera by lazy({
+    private val camera by lazy{
         val num = Camera.getNumberOfCameras()
         Camera.open(num - 1)
-    })
+    }
 
     fun init(context: Context): Boolean {
         this.mContext = context
@@ -133,7 +133,7 @@ class CameraRecorder : IRecorder {
         camera.setPreviewDisplay(holder)
         camera.startPreview()
         camera.setOneShotPreviewCallback { data, camera ->
-            async(CommonPool) {
+            launch(CommonPool) {
                 camera.setOneShotPreviewCallback(null)
                 val previewSize = camera.parameters.previewSize
                 val yuvImage = YuvImage(data, ImageFormat.NV21, previewSize.width, previewSize.height, null)
@@ -185,7 +185,7 @@ class CameraRecorder : IRecorder {
     // 拍照片
     override fun takePicture() {
         camera.takePicture(null, null, Camera.PictureCallback { data, _ ->
-            async(CommonPool) {
+            launch(CommonPool) {
                 val file = File(pictureFileName)
                 val fos = FileOutputStream(file)
                 fos.write(data)

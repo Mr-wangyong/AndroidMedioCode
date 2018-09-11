@@ -48,7 +48,7 @@ public class ImageTextureView extends TextureView {
 
             @Override
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-                return false;
+                return true;
             }
 
             @Override

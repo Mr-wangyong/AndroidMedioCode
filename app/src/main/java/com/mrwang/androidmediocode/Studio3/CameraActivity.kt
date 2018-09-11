@@ -2,7 +2,9 @@ package com.mrwang.androidmediocode.Studio3
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.support.v4.content.FileProvider
 import android.support.v7.app.AppCompatActivity
 import org.jetbrains.anko.button
 import org.jetbrains.anko.frameLayout
@@ -61,9 +63,14 @@ class CameraActivity : AppCompatActivity() {
                     setOnClickListener {
                         cameraRecorder.stopRecorder()
                         val intent = Intent(Intent.ACTION_VIEW)
+
                         val path = cameraRecorder.videoFileName
                         val file = File(path)
-                        val uri = Uri.fromFile(file)
+                        val uri = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                            Uri.fromFile(file)
+                        } else {
+                            FileProvider.getUriForFile(applicationContext, applicationContext.packageName + ".provider", file)
+                        }
                         intent.setDataAndType(uri, "video/*")
                         startActivity(intent)
                     }
@@ -82,7 +89,6 @@ class CameraActivity : AppCompatActivity() {
         super.onResume()
         cameraRecorder.onResume()
     }
-
 
 
 }
